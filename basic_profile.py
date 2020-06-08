@@ -38,7 +38,10 @@ def checkReal(element):
         Return:
         Bool -> True if element is a floating point, otherwise False
     '''
+    import re
     try:
+        element = element.replace(",", "")
+        element = element.replace("$", "")
         reFloat = "^([-+]?[0-9]*)?\.[0-9]+([eE][-+]?[0-9]+)?$"
         if re.search(reFloat, element):  # if element is real (float)
             try: 
@@ -53,7 +56,6 @@ def checkReal(element):
         # print("Failed to match real element: {}".format(element))
         pass
     return False
-
 
 
 def checkText(element):
@@ -159,7 +161,7 @@ def get_analysis(sc, col_dict):
         int_rdd = sc.parallelize(col_dict["INTEGER"])
         temp_dict = {"type": "INTEGER"}
         int_stats = int_rdd.stats()
-        int_count, int_max, int_min, int_mean, int_std = type_counts["INTEGER"], int_stats.max(), int_stats.min(), int_stats.mean(), int_stats.stdev()
+        int_count, int_max, int_min, int_mean, int_std = int_stats.count(), int_stats.max(), int_stats.min(), int_stats.mean(), int_stats.stdev()
         temp_dict["count"] = int_count
         temp_dict["max_value"] = int_max
         temp_dict["min_value"] = int_min
@@ -271,15 +273,7 @@ def get_dataset_profile(spark, df_cols):
             # not changing the StructType of the DF, just monitoring
             #if str(value) in checkList:
                 #continue
-            if checkReal(value):
-                value = float(value) # add try
-                if "REAL" in column_info:
-                    column_info["REAL"].append(value)
-                else: 
-                    column_info["REAL"] = [value]
-                    if not flag_real:
-                        flag_real= True
-            elif checkColName(column): # time period interval date 
+            if checkColName(column): # time period interval date 
                 date = checkDate(value)
                 if date:
                     if "DATE/TIME" in column_info:
@@ -288,7 +282,15 @@ def get_dataset_profile(spark, df_cols):
                         column_info["DATE/TIME"] = [date]
                         if not flag_date:
                             flag_date = True
-            elif checkInt(value):
+            elif checkReal(str(value)):
+                value = float(value) # add try
+                if "REAL" in column_info:
+                    column_info["REAL"].append(value)
+                else: 
+                    column_info["REAL"] = [value]
+                    if not flag_real:
+                        flag_real= True
+            elif checkInt(str(value)):
                 value = int(value)
                 if "INTEGER" in column_info:
                     column_info["INTEGER"].append(value)
